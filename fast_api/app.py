@@ -18,7 +18,7 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
-def generate_font_image(text, font_path, image_size=(300, 100)):
+def generate_font_image(text, font_path, image_size=(900, 100)):
     image = PILImage.new('L', image_size, color='black')
     draw = ImageDraw.Draw(image)
 
@@ -33,7 +33,6 @@ def generate_font_image(text, font_path, image_size=(300, 100)):
     position = ((image_size[0] - text_width) // 2, (image_size[1] - text_height) // 2)
 
     draw.text(position, text, fill='white', font=font)
-
     return image
 
 
@@ -70,7 +69,7 @@ parent_directory = os.path.dirname(current_directory)
 model_path = os.path.join(parent_directory, 'model.pth')
 
 base_net = BaseNet()
-base_net.load_state_dict(torch.load(model_path))
+base_net.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
 base_net.eval()
 
 embeddings_path = os.path.join(parent_directory, 'test_average_embeddings.pkl')
@@ -114,16 +113,17 @@ def predict_font_from_image(image):
 
     embedding = base_net(image).detach().cpu().numpy()
 
-    top5_fonts = predict_top_fonts(embedding, test_average_embeddings, top_n=20)
+    top5_fonts = predict_top_fonts(embedding, test_average_embeddings, top_n=3)
 
     font_data = []
     for font_name, font_distance in top5_fonts:
-        font_file = font_name.replace(" ", "_") + "_Regular.ttf"
+        font_file = font_name.replace(" ", "_") + "_regular.otf"
         font_path = f"{parent_directory}/downloaded_fonts/{font_file}"
-        font_image = generate_font_image("ABCDF abcdf", font_path)
+        print(font_path)
+        font_image = generate_font_image("АБВГД абвгд 12345", font_path)
         if font_image:
             font_data.append(font_image)
-            font_data.append(f"{font_name} (Distance: {font_distance:.2f})")
+            font_data.append(f"{font_name} (Дистанция: {font_distance:.2f})")
 
     return tuple(font_data)
 
