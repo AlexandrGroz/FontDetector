@@ -1,14 +1,247 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FontDetector — Поиск похожих шрифтов</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #111827;
+            --muted: #94a3b8;
+            --primary: #6366f1;
+            --primary-strong: #4f46e5;
+            --border: #1f2937;
+            --card: #0b1324;
+            --success: #22c55e;
+            --warn: #f59e0b;
+            --error: #ef4444;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: radial-gradient(circle at 10% 20%, rgba(99,102,241,0.15), transparent 25%),
+                        radial-gradient(circle at 80% 10%, rgba(236,72,153,0.15), transparent 20%),
+                        var(--bg);
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+
+        header {
+            padding: 32px 5vw 16px;
+        }
+
+        .headline {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .headline span {
+            background: linear-gradient(120deg, #6366f1, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            margin-top: 8px;
+            color: var(--muted);
+            max-width: 720px;
+            line-height: 1.5;
+        }
+
+        main {
+            padding: 0 5vw 64px;
+        }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+        }
+
+        .upload-grid {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 24px;
+            align-items: stretch;
+        }
+
+        @media (max-width: 900px) {
+            .upload-grid { grid-template-columns: 1fr; }
+        }
+
+        .dropzone {
+            border: 2px dashed #334155;
+            border-radius: 16px;
+            padding: 32px;
+            background: rgba(17, 24, 39, 0.5);
+            text-align: center;
+            transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+            cursor: pointer;
+        }
+
+        .dropzone.dragging {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.08);
+            transform: scale(1.01);
+        }
+
+        .dropzone h3 {
+            margin: 0 0 8px;
+            font-size: 18px;
+        }
+
+        .dropzone p { margin: 0; color: var(--muted); }
+
+        .preview-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .preview-header { color: var(--muted); font-weight: 600; }
+
+        #imagePreview {
+            width: 100%;
+            height: 220px;
+            object-fit: contain;
+            background: #0a0f1f;
+            border: 1px dashed #1e293b;
+            border-radius: 12px;
+            padding: 12px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        #imagePreview.visible { opacity: 1; }
+
+        .helper-text { color: var(--muted); font-size: 14px; }
+
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        button {
+            border: none;
+            border-radius: 12px;
+            padding: 14px 20px;
+            font-size: 15px;
+            font-weight: 700;
+            background: linear-gradient(120deg, var(--primary), var(--primary-strong));
+            color: white;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+        }
+
+        button:hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(79,70,229,0.35); }
+        button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .status { font-size: 14px; }
+        .status.muted { color: var(--muted); }
+        .status.info { color: var(--primary); }
+        .status.warn { color: var(--warn); }
+        .status.success { color: var(--success); }
+        .status.error { color: var(--error); }
+
+        .results-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 32px 0 12px;
+        }
+
+        .results-title { font-size: 18px; font-weight: 700; }
+        .results-count { color: var(--muted); font-size: 14px; }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+        }
+
+        .font-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: border-color 0.15s ease, transform 0.15s ease;
+        }
+
+        .font-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+
+        .font-preview {
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0a0f1f;
+            border-radius: 10px;
+            border: 1px dashed #1e293b;
+            padding: 10px;
+        }
+
+        .font-preview img { max-height: 100%; max-width: 100%; object-fit: contain; }
+
+        .font-label { margin: 0; color: #e2e8f0; font-weight: 600; line-height: 1.4; }
+        .muted { color: var(--muted); }
+
+        input[type="file"] { display: none; }
+    </style>
 </head>
 <body>
-<img id="imagePreview" width="200"/>
-<input type="file" id="imageUpload">
-<button onclick="sendToServer()">Определить шрифт</button>
-<div id="results">
-</div>
+    <header>
+        <div class="headline">Результаты для <span>FontDetector</span></div>
+        <p class="subtitle">Загрузите изображение с текстом, и мы подберём похожие шрифты — вдохновляйтесь популярным интерфейсом WhatTheFont.</p>
+    </header>
 
-<script src="/static/main.js"></script>
+    <main>
+        <section class="panel upload-grid">
+            <div class="dropzone" id="dropZone">
+                <h3>Перетащите изображение сюда</h3>
+                <p>или нажмите, чтобы выбрать файл. Поддерживаются вставка из буфера обмена и drag-and-drop.</p>
+            </div>
+
+            <div class="preview-card">
+                <div class="preview-header">Предпросмотр изображения</div>
+                <img id="imagePreview" alt="Предпросмотр загруженного изображения">
+                <div class="helper-text">Подсказка: используйте контрастные изображения текста для более точного результата.</div>
+                <div class="actions">
+                    <button id="predictButton">Определить шрифт</button>
+                    <span id="statusText" class="status muted">Начните с загрузки изображения.</span>
+                </div>
+            </div>
+        </section>
+
+        <div class="results-header">
+            <div class="results-title">Похожие шрифты</div>
+            <div class="results-count" id="resultsCount">Top 3</div>
+        </div>
+        <section class="panel">
+            <div id="results" class="results-grid"></div>
+        </section>
+    </main>
+
+    <input type="file" id="imageUpload" accept="image/*">
+    <script src="/static/main.js"></script>
 </body>
 </html>

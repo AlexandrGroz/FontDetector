@@ -18,14 +18,14 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
-def generate_font_image(text, font_path, image_size=(900, 100)):
+def generate_font_image(text, font_path=None, image_size=(900, 100)):
     image = PILImage.new('L', image_size, color='black')
     draw = ImageDraw.Draw(image)
 
     try:
-        font = ImageFont.truetype(font_path, 40)
+        font = ImageFont.truetype(font_path, 40) if font_path else ImageFont.load_default()
     except IOError:
-        return None
+        font = ImageFont.load_default()
 
     text_bbox = draw.textbbox(text=text, font=font, xy=(0, 0))
     text_width = text_bbox[2] - text_bbox[0]
@@ -117,13 +117,13 @@ def predict_font_from_image(image):
 
     font_data = []
     for font_name, font_distance in top5_fonts:
-        font_file = font_name.replace(" ", "_") + "_regular.otf"
-        font_path = f"{parent_directory}/downloaded_fonts/{font_file}"
-        print(font_path)
+        font_file = font_name.replace(" ", "_") + "_Regular.ttf"
+        font_path = os.path.join(parent_directory, 'downloaded_fonts', font_file)
+        if not os.path.exists(font_path):
+            font_path = None
         font_image = generate_font_image("АБВГД абвгд 12345", font_path)
-        if font_image:
-            font_data.append(font_image)
-            font_data.append(f"{font_name} (Дистанция: {font_distance:.2f})")
+        font_data.append(font_image)
+        font_data.append(f"{font_name} (Дистанция: {font_distance:.2f})")
 
     return tuple(font_data)
 
