@@ -117,7 +117,7 @@ def predict_font_from_image(image):
 
     font_data = []
     for font_name, font_distance in top5_fonts:
-        font_file = font_name.replace(" ", "_") + "_regular.otf"
+        font_file = font_name.replace(" ", "_") + "_Regular.ttf"
         font_path = os.path.join(parent_directory, 'downloaded_fonts', font_file)
         if not os.path.exists(font_path):
             font_path = None
