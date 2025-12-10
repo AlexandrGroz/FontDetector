@@ -1,7 +1,7 @@
 let currentImage = null;
 
 async function processImage(formData) {
-    const response = await fetch('/predict', {
+    const response = await fetch('/predict/', {
         method: 'POST',
         body: formData
     });
@@ -11,7 +11,7 @@ async function processImage(formData) {
     const resultsDiv = document.getElementById('results');
     resultsDiv.innerHTML = "";
 
-    result.font_data.forEach((fontInfo, index) => {
+    result.font_data.forEach((fontInfo) => {
         const fontDiv = document.createElement('div');
         fontDiv.innerHTML = `<img src="data:image/png;base64,${fontInfo.imageBase64}">
                          <p>${fontInfo.label}</p>`;
